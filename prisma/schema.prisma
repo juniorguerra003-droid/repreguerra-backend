@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENTE
+}
+
+enum DocumentType {
+  DNI
+  RUC
+}
+
+enum OrderStatus {
+  PENDIENTE
+  PROCESANDO
+  ENVIADO
+  COMPLETADO
+}
+
+enum PaymentMethod {
+  YAPE
+  PLIN
+  TARJETA
+  TRANSFERENCIA
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  APROBADO
+  FALLIDO
+}
+
+model User {
+  id             String       @id @default(uuid())
+  nombre_completo String
+  tipo_documento  DocumentType
+  num_documento   String
+  email          String       @unique
+  password_hash  String
+  telefono       String?
+  rol            Role         @default(CLIENTE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  orders         Order[]
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  nombre    String
+  estado    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+}
+
+model Product {
+  id          String    @id @default(uuid())
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  nombre      String
+  sku         String    @unique
+  descripcion String?
+  precio      Decimal   @db.Decimal(10, 2)
+  stock       Int       @default(0)
+  imagen_url  String?
+  estado      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  total          Decimal     @db.Decimal(10, 2)
+  estado_pedido  OrderStatus @default(PENDIENTE)
+  direccion_envio String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  orderItems     OrderItem[]
+  payment        Payment?
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  cantidad        Int
+  precio_unitario Decimal  @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  orderId        String        @unique
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  metodo_pago    PaymentMethod
+  estado_pago    PaymentStatus @default(PENDIENTE)
+  transaccion_id String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
