@@ -10,8 +10,9 @@ const router = Router();
 router.get('/', validate(getProductsQuerySchema), productController.getAll);
 router.get('/:id', productController.getById);
 
-// Admin only routes
-router.use(authenticate, requireAdmin);
+// Admin only routes (Desactivado temporalmente para pruebas)
+ router.use(authenticate, requireAdmin); 
+
 router.post('/', validate(createProductSchema), productController.create);
 router.patch('/:id', validate(updateProductSchema), productController.update);
 router.delete('/:id', productController.remove);
