@@ -1,110 +1,101 @@
-import prisma from '../config/prisma';
-import { z } from 'zod';
-import { createOrderSchema } from '../schemas/order.schema';
+import { PrismaClient } from '@prisma/client';
 
-type CreateOrderInput = z.infer<typeof createOrderSchema>['body'];
+const prisma = new PrismaClient();
 
-export const checkout = async (userId: string, data: CreateOrderInput) => {
-  // Prisma transaction to ensure atomicity
-  return await prisma.$transaction(async (tx) => {
-    let total = 0;
-    const orderItemsData = [];
+export const checkout = async (body: any, userId?: string) => {
+    const { items, direccion_envio } = body;
 
-    // Validate stock and calculate total from DB
-    for (const item of data.items) {
-      // Find the product and lock it implicitly in Postgres
-      const product = await tx.product.findUnique({
-        where: { id: item.productId },
-      });
-
-      if (!product || !product.estado) {
-        const error: any = new Error(`Producto no encontrado o inactivo: ${item.productId}`);
-        error.statusCode = 404;
-        throw error;
-      }
-
-      if (product.stock < item.cantidad) {
-        const error: any = new Error(`Stock insuficiente para el producto: ${product.nombre}`);
-        error.statusCode = 400;
-        throw error;
-      }
-
-      // Decrement stock
-      await tx.product.update({
-        where: { id: product.id },
-        data: { stock: { decrement: item.cantidad } },
-      });
-
-      // Calculate historical price subtotal
-      const precioUnitario = Number(product.precio);
-      total += precioUnitario * item.cantidad;
-
-      orderItemsData.push({
-        productId: product.id,
-        cantidad: item.cantidad,
-        precio_unitario: product.precio,
-      });
+    if (!items || items.length === 0) {
+        throw new Error('El carrito no puede estar vacío.');
     }
 
-    // Create the Order along with OrderItems and Payment (Pending state)
-    const order = await tx.order.create({
-      data: {
-        userId,
-        direccion_envio: data.direccion_envio,
-        total,
-        estado_pedido: 'PENDIENTE',
-        orderItems: {
-          create: orderItemsData,
-        },
-        payment: {
-          create: {
-            metodo_pago: data.metodo_pago,
-            estado_pago: 'PENDIENTE',
-          },
-        },
-      },
-      include: {
-        orderItems: true,
-        payment: true,
-      },
+    // Ejecutamos la transacción blindada
+    const nuevoPedido = await prisma.$transaction(async (tx) => {
+        let totalAcumulado = 0;
+        const itemsParaGuardar = [];
+
+// 1. Validar stock real y recalcular precios
+        for (const item of items) {
+            const productoReal = await tx.product.findUnique({
+                where: { id: item.productId } // <-- ¡Cambiamos item.id por item.productId!
+            });
+
+            if (!productoReal || !productoReal.estado) {
+                throw new Error(`El producto ${item.nombre || 'desconocido'} ya no está disponible.`);
+            }
+
+            if (productoReal.stock < item.cantidad) {
+                throw new Error(`Stock insuficiente para ${productoReal.nombre}. Quedan ${productoReal.stock}.`);
+            }
+
+            const precioUnitario = Number(productoReal.precio);
+            totalAcumulado += precioUnitario * item.cantidad;
+
+            itemsParaGuardar.push({
+                productId: productoReal.id,
+                cantidad: item.cantidad,
+                precio_unitario: productoReal.precio
+            });
+
+            // 2. Descontar el stock inmediatamente
+            await tx.product.update({
+                where: { id: productoReal.id },
+                data: { stock: productoReal.stock - item.cantidad }
+            });
+        }
+
+        // 3. Crear la Orden (con o sin usuario)
+        const order = await tx.order.create({
+            data: {
+                userId: userId || null, // Si es invitado, queda en null
+                total: totalAcumulado,
+                direccion_envio: direccion_envio || 'No especificada',
+                estado_pedido: 'PENDIENTE',
+                orderItems: {
+                    create: itemsParaGuardar
+                }
+            },
+            include: {
+                orderItems: true
+            }
+        });
+
+        // 4. Crear el registro de Pago
+        await tx.payment.create({
+            data: {
+                orderId: order.id,
+                metodo_pago: 'TARJETA', 
+                estado_pago: 'PENDIENTE'
+            }
+        });
+
+        return order;
     });
 
-    return order;
-  });
+    return nuevoPedido;
 };
 
-export const getOrderById = async (id: string, userId: string, role: string) => {
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      orderItems: { include: { product: true } },
-      payment: true,
-    },
-  });
-
-  if (!order) {
-    const error: any = new Error('Pedido no encontrado');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  // Ensure user owns order or is admin
-  if (order.userId !== userId && role !== 'ADMIN') {
-    const error: any = new Error('Acceso denegado');
-    error.statusCode = 403;
-    throw error;
-  }
-
-  return order;
-};
-
+// --- MÉTODOS DE HISTORIAL (Mantenemos la estructura) ---
 export const getUserOrders = async (userId: string) => {
-  return prisma.order.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      orderItems: true,
-      payment: true,
-    },
-  });
+    return prisma.order.findMany({
+        where: { userId },
+        include: { orderItems: { include: { product: true } }, payment: true },
+        orderBy: { createdAt: 'desc' }
+    });
+};
+
+export const getOrderById = async (orderId: string, userId: string, userRol: string) => {
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { orderItems: { include: { product: true } }, payment: true }
+    });
+
+    if (!order) throw new Error('Pedido no encontrado');
+    
+    // Si no es admin y el pedido no es suyo, bloqueamos
+    if (userRol !== 'ADMIN' && order.userId !== userId) {
+        throw new Error('No tienes permiso para ver este pedido');
+    }
+
+    return order;
 };

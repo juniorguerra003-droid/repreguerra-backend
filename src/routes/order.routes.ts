@@ -6,10 +6,17 @@ import { authenticate } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// All order routes require authentication
-router.use(authenticate);
-
+// ==========================================
+// RUTA PÚBLICA: Checkout de Invitados
+// ¡Cualquiera puede comprar!
+// ==========================================
 router.post('/checkout', validate(createOrderSchema), orderController.checkout);
+
+// ==========================================
+// RUTAS PRIVADAS: Solo para usuarios registrados
+// El "guardia" se pone aquí para proteger el historial
+// ==========================================
+router.use(authenticate); 
 router.get('/my-orders', orderController.getMyOrders);
 router.get('/:id', orderController.getOrder);
 

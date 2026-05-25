@@ -3,8 +3,10 @@ import { catchAsync } from '../utils/catchAsync';
 import * as orderService from '../services/order.service';
 
 export const checkout = catchAsync(async (req: Request, res: Response) => {
-  // User is authenticated, so req.user exists
-  const order = await orderService.checkout(req.user!.id, req.body);
+  // Al usar (req as any), TypeScript nos deja pasar sin rayitas rojas
+  const userId = (req as any).user?.id; 
+  
+  const order = await orderService.checkout(req.body, userId);
   
   res.status(201).json({
     success: true,
@@ -13,6 +15,7 @@ export const checkout = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getMyOrders = catchAsync(async (req: Request, res: Response) => {
+  // Aquí sí exigimos que esté logueado porque quiere ver "sus" pedidos históricos
   const orders = await orderService.getUserOrders(req.user!.id);
   
   res.status(200).json({
