@@ -8,15 +8,22 @@ const router = Router();
 
 // ==========================================
 // RUTA PÚBLICA: Checkout de Invitados
-// ¡Cualquiera puede comprar!
 // ==========================================
 router.post('/checkout', validate(createOrderSchema), orderController.checkout);
 
 // ==========================================
-// RUTAS PRIVADAS: Solo para usuarios registrados
-// El "guardia" se pone aquí para proteger el historial
+// RUTAS PRIVADAS: El guardia
 // ==========================================
 router.use(authenticate); 
+
+// 👇 RUTA PROTEGIDA: Solo el administrador con token puede entrar
+// ¡ESTA ES LA NUEVA RUTA DEL DASHBOARD!
+router.get('/admin/stats', orderController.getDashboardStats);
+
+router.get('/admin/all', orderController.getAllOrdersForAdmin);
+router.patch('/admin/:id/status', orderController.updateOrderStatus);
+
+// RUTAS DE USUARIO
 router.get('/my-orders', orderController.getMyOrders);
 router.get('/:id', orderController.getOrder);
 

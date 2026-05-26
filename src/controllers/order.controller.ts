@@ -32,3 +32,60 @@ export const getOrder = catchAsync(async (req: Request, res: Response) => {
     data: order,
   });
 });
+
+export const getAllOrdersForAdmin = catchAsync(async (req: Request, res: Response) => {
+  console.log("🚨 ALERTA: Llegamos al controlador sin seguridad");
+
+  // COMENTAMOS ESTO TEMPORALMENTE PARA LA PRUEBA
+  
+  const userRole = (req as any).user?.rol;
+  if (userRole !== 'ADMIN') {
+    res.status(403).json({ success: false, message: 'Acceso denegado.' });
+    return;
+  }
+  
+
+  const orders = await orderService.getAllOrders();
+  
+  res.status(200).json({ 
+    success: true, 
+    data: orders 
+  });
+});
+
+export const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+  // 1. Verificamos rol
+  const userRole = (req as any).user?.rol;
+  if (userRole !== 'ADMIN') {
+    res.status(403).json({ success: false, message: 'Acceso denegado. No eres administrador.' });
+    return;
+  }
+
+  // 2. Extraemos el ID de la URL y el estado del cuerpo de la petición
+  const { id } = req.params;
+  const { estado } = req.body; 
+
+  // 3. Actualizamos en la base de datos
+  const updatedOrder = await orderService.updateOrderStatus(id, estado);
+  
+  res.status(200).json({ 
+    success: true, 
+    data: updatedOrder,
+    message: `Pedido actualizado a ${estado}`
+  });
+});
+
+export const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
+    const userRole = (req as any).user?.rol;
+    if (userRole !== 'ADMIN') {
+        res.status(403).json({ success: false, message: 'Acceso denegado.' });
+        return;
+    }
+
+    const stats = await orderService.getDashboardStats();
+    
+    res.status(200).json({ 
+        success: true, 
+        data: stats 
+    });
+});

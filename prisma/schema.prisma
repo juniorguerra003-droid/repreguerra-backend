@@ -23,6 +23,7 @@ enum OrderStatus {
   PROCESANDO
   ENVIADO
   COMPLETADO
+  CANCELADO
 }
 
 enum PaymentMethod {

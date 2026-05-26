@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -98,4 +98,49 @@ export const getOrderById = async (orderId: string, userId: string, userRol: str
     }
 
     return order;
+};
+
+export const getAllOrders = async () => {
+    return prisma.order.findMany({
+        include: { 
+            orderItems: { include: { product: true } }, 
+            payment: true,
+            user: true 
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+};
+
+export const updateOrderStatus = async (id: string, nuevoEstado: string) => {
+    return prisma.order.update({
+        where: { id: id },
+        data: { estado_pedido: nuevoEstado as OrderStatus } // 2. Agregamos el "as OrderStatus"
+    });
+};
+
+export const getDashboardStats = async () => {
+    // 1. Calculamos el total de ingresos (usando el objeto OrderStatus oficial)
+    const ingresos = await prisma.order.aggregate({
+        _sum: { total: true },
+        where: { estado_pedido: { not: OrderStatus.CANCELADO } } // <-- Corrección 1
+    });
+
+    // 2. Contamos cuántos pedidos hay en total
+    const totalPedidos = await prisma.order.count();
+
+    // 3. Agrupamos y contamos los pedidos por estado
+    const pedidosPorEstado = await prisma.order.groupBy({
+        by: ['estado_pedido'],
+        _count: { estado_pedido: true }
+    });
+
+    return {
+        // Usamos el signo de interrogación (?) para evitar el error de undefined
+        ingresosTotales: ingresos._sum?.total || 0, // <-- Corrección 2
+        pedidosTotales: totalPedidos,
+        resumenEstados: pedidosPorEstado.map(item => ({
+            estado: item.estado_pedido,
+            cantidad: item._count.estado_pedido
+        }))
+    };
 };
