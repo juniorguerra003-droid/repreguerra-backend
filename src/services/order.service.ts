@@ -3,7 +3,7 @@ import { PrismaClient, OrderStatus } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const checkout = async (body: any, userId?: string) => {
-    const { items, direccion_envio } = body;
+    const { items, direccion_envio, comprobante_url } = body;
 
     if (!items || items.length === 0) {
         throw new Error('El carrito no puede estar vacío.');
@@ -64,8 +64,9 @@ export const checkout = async (body: any, userId?: string) => {
         await tx.payment.create({
             data: {
                 orderId: order.id,
-                metodo_pago: 'TARJETA', 
-                estado_pago: 'PENDIENTE'
+                metodo_pago: body.metodo_pago || 'TARJETA',
+                estado_pago: 'PENDIENTE',
+                ...(comprobante_url ? { comprobante_url } : {}),
             }
         });
 
