@@ -18,3 +18,10 @@ export const loginSchema = z.object({
     password: z.string().min(1, 'La contraseña es obligatoria'),
   }),
 });
+
+export const updateProfileSchema = z.object({
+  body: z.object({
+    telefono: z.string().optional(),
+    direccion_defecto: z.string().optional(),
+  }),
+});

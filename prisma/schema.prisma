@@ -47,6 +47,7 @@ model User {
   email          String       @unique
   password_hash  String
   telefono       String?
+  direccion_defecto String?
   rol            Role         @default(CLIENTE)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
