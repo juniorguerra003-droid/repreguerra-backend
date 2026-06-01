@@ -24,15 +24,19 @@ export const getAllProducts = async (filters: { categoryId?: string; search?: st
     include: {
       category: {
         select: { id: true, nombre: true }
-      }
-    },
+      },
+      brand: true
+    }
   });
 };
 
 export const getProductById = async (id: string) => {
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { category: true },
+    include: { 
+      category: true,
+      brand: true 
+    },
   });
 
   if (!product) {
@@ -47,6 +51,13 @@ export const getProductById = async (id: string) => {
 export const createProduct = async (data: CreateInput) => {
   return prisma.product.create({
     data,
+  });
+};
+
+export const createBulkProducts = async (data: any[]) => {
+  return prisma.product.createMany({
+    data,
+    skipDuplicates: true, // Ignora los SKUs que ya existen
   });
 };
 

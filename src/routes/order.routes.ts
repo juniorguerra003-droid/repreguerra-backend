@@ -19,6 +19,7 @@ router.use(authenticate);
 // 👇 RUTA PROTEGIDA: Solo el administrador con token puede entrar
 // ¡ESTA ES LA NUEVA RUTA DEL DASHBOARD!
 router.get('/admin/stats', orderController.getDashboardStats);
+router.get('/admin/analytics', orderController.getAnalytics);
 
 router.get('/admin/all', orderController.getAllOrdersForAdmin);
 router.patch('/admin/:id/status', orderController.updateOrderStatus);

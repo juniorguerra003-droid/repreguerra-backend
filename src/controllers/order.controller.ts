@@ -89,3 +89,18 @@ export const getDashboardStats = catchAsync(async (req: Request, res: Response) 
         data: stats 
     });
 });
+
+export const getAnalytics = catchAsync(async (req: Request, res: Response) => {
+  const userRole = (req as any).user?.rol;
+  if (userRole !== 'ADMIN') {
+      res.status(403).json({ success: false, message: 'Acceso denegado.' });
+      return;
+  }
+
+  const analytics = await orderService.getWeeklyAnalytics();
+  
+  res.status(200).json({ 
+      success: true, 
+      data: analytics 
+  });
+});

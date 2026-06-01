@@ -34,6 +34,16 @@ export const create = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+export const createBulk = catchAsync(async (req: Request, res: Response) => {
+  const result = await productService.createBulkProducts(req.body);
+  
+  res.status(201).json({
+    success: true,
+    message: `Se insertaron ${result.count} productos exitosamente.`,
+    count: result.count,
+  });
+});
+
 export const update = catchAsync(async (req: Request, res: Response) => {
   const product = await productService.updateProduct(req.params.id, req.body);
   

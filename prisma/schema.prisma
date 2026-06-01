@@ -53,6 +53,18 @@ model User {
   updatedAt      DateTime     @updatedAt
 
   orders         Order[]
+  wishlist       Wishlist[]
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  nombre    String
+  logo_url  String?
+  estado    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
 }
 
 model Category {
@@ -69,10 +81,15 @@ model Product {
   id          String    @id @default(uuid())
   categoryId  String
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId     String?
+  brand       Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   nombre      String
   sku         String    @unique
   descripcion String?
   precio      Decimal   @db.Decimal(10, 2)
+  enOferta    Boolean   @default(false)
+  precioOferta Decimal? @db.Decimal(10, 2)
+  mostrarPrecio Boolean @default(true)
   stock       Int       @default(0)
   imagen_url  String?
   estado      Boolean   @default(true)
@@ -80,6 +97,7 @@ model Product {
   updatedAt   DateTime  @updatedAt
 
   orderItems  OrderItem[]
+  wishlist    Wishlist[]
 }
 
 model Order {
@@ -129,4 +147,54 @@ model Banner {
   orden           Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Wishlist {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+enum ComplaintStatus {
+  PENDIENTE
+  EN_PROCESO
+  RESUELTO
+}
+
+enum ComplaintType {
+  RECLAMO
+  QUEJA
+}
+
+enum ItemType {
+  PRODUCTO
+  SERVICIO
+}
+
+model Complaint {
+  id              String          @id @default(uuid())
+  nombres         String
+  documento       String
+  email           String
+  telefono        String?
+  domicilio       String
+  
+  tipoBien        ItemType        @default(PRODUCTO)
+  montoReclamado  Decimal?        @db.Decimal(10, 2)
+  descripcionBien String
+
+  tipoReclamo     ComplaintType   @default(RECLAMO)
+  detalle         String
+  pedido          String
+
+  estado          ComplaintStatus @default(PENDIENTE)
+  respuesta       String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }

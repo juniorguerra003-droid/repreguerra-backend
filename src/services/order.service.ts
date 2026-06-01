@@ -145,3 +145,62 @@ export const getDashboardStats = async () => {
         }))
     };
 };
+
+export const getWeeklyAnalytics = async () => {
+    const sieteDiasAtras = new Date();
+    sieteDiasAtras.setDate(sieteDiasAtras.getDate() - 7);
+
+    // Obtener los pedidos de los últimos 7 días
+    const pedidos = await prisma.order.findMany({
+        where: {
+            createdAt: {
+                gte: sieteDiasAtras
+            }
+        },
+        select: {
+            createdAt: true,
+            total: true,
+            estado_pedido: true
+        }
+    });
+
+    // Agrupar por fecha para el gráfico de barras (Ventas por día)
+    const ventasPorDiaMap = new Map<string, { fecha: string, total: number, cantidad: number }>();
+    
+    // Inicializar los últimos 7 días en el map
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const fechaStr = d.toISOString().split('T')[0];
+        ventasPorDiaMap.set(fechaStr, { fecha: fechaStr, total: 0, cantidad: 0 });
+    }
+
+    // Agrupar por estado para el gráfico (Estado de Pedidos)
+    const pedidosPorEstadoMap = new Map<string, number>();
+
+    pedidos.forEach(p => {
+        const fechaStr = p.createdAt.toISOString().split('T')[0];
+        
+        // Acumular ventas por día
+        if (ventasPorDiaMap.has(fechaStr) && p.estado_pedido !== 'CANCELADO') {
+            const current = ventasPorDiaMap.get(fechaStr)!;
+            current.total += Number(p.total);
+            current.cantidad += 1;
+        }
+
+        // Acumular pedidos por estado
+        const estado = p.estado_pedido;
+        pedidosPorEstadoMap.set(estado, (pedidosPorEstadoMap.get(estado) || 0) + 1);
+    });
+
+    const ventasPorDia = Array.from(ventasPorDiaMap.values());
+    const pedidosPorEstado = Array.from(pedidosPorEstadoMap.entries()).map(([estado, cantidad]) => ({
+        estado,
+        cantidad
+    }));
+
+    return {
+        ventasPorDia,
+        pedidosPorEstado
+    };
+};
