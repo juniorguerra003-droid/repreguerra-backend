@@ -3,8 +3,8 @@ import { catchAsync } from '../utils/catchAsync';
 import * as orderService from '../services/order.service';
 
 export const checkout = catchAsync(async (req: Request, res: Response) => {
-  // Al usar (req as any), TypeScript nos deja pasar sin rayitas rojas
-  const userId = (req as any).user?.id; 
+  // Authentication es requerida, así que req.user siempre existe
+  const userId = req.user!.id; 
   
   const order = await orderService.checkout(req.body, userId);
   
@@ -34,17 +34,6 @@ export const getOrder = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getAllOrdersForAdmin = catchAsync(async (req: Request, res: Response) => {
-  console.log("🚨 ALERTA: Llegamos al controlador sin seguridad");
-
-  // COMENTAMOS ESTO TEMPORALMENTE PARA LA PRUEBA
-  
-  const userRole = (req as any).user?.rol;
-  if (userRole !== 'ADMIN') {
-    res.status(403).json({ success: false, message: 'Acceso denegado.' });
-    return;
-  }
-  
-
   const orders = await orderService.getAllOrders();
   
   res.status(200).json({ 
@@ -54,13 +43,6 @@ export const getAllOrdersForAdmin = catchAsync(async (req: Request, res: Respons
 });
 
 export const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
-  // 1. Verificamos rol
-  const userRole = (req as any).user?.rol;
-  if (userRole !== 'ADMIN') {
-    res.status(403).json({ success: false, message: 'Acceso denegado. No eres administrador.' });
-    return;
-  }
-
   // 2. Extraemos el ID de la URL y el estado del cuerpo de la petición
   const { id } = req.params;
   const { estado } = req.body; 
@@ -76,12 +58,6 @@ export const updateOrderStatus = catchAsync(async (req: Request, res: Response) 
 });
 
 export const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
-    const userRole = (req as any).user?.rol;
-    if (userRole !== 'ADMIN') {
-        res.status(403).json({ success: false, message: 'Acceso denegado.' });
-        return;
-    }
-
     const stats = await orderService.getDashboardStats();
     
     res.status(200).json({ 
@@ -91,12 +67,6 @@ export const getDashboardStats = catchAsync(async (req: Request, res: Response) 
 });
 
 export const getAnalytics = catchAsync(async (req: Request, res: Response) => {
-  const userRole = (req as any).user?.rol;
-  if (userRole !== 'ADMIN') {
-      res.status(403).json({ success: false, message: 'Acceso denegado.' });
-      return;
-  }
-
   const analytics = await orderService.getWeeklyAnalytics();
   
   res.status(200).json({ 

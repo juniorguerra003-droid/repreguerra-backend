@@ -28,14 +28,16 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: 'No autenticado' });
-  }
+export const requireRole = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'No autenticado' });
+    }
 
-  if (req.user.rol !== 'ADMIN') {
-    return res.status(403).json({ success: false, message: 'Acceso denegado: Se requieren permisos de administrador' });
-  }
+    if (!req.user.rol || !roles.includes(req.user.rol)) {
+      return res.status(403).json({ success: false, message: 'Acceso denegado: Permisos insuficientes' });
+    }
 
-  next();
+    next();
+  };
 };

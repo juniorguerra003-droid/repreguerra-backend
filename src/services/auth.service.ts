@@ -33,7 +33,7 @@ export const registerUser = async (data: RegisterInput) => {
     },
   });
 
-  const token = generateToken({ id: user.id, rol: user.rol as 'ADMIN' | 'CLIENTE' });
+  const token = generateToken({ id: user.id, rol: user.rol });
 
   return {
     user: {
@@ -67,7 +67,7 @@ export const loginUser = async (data: LoginInput) => {
     throw error;
   }
 
-  const token = generateToken({ id: user.id, rol: user.rol as 'ADMIN' | 'CLIENTE' });
+  const token = generateToken({ id: user.id, rol: user.rol });
 
   return {
     user: {

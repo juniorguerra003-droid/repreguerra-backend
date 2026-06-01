@@ -2,14 +2,14 @@ import { Router } from 'express';
 import * as orderController from '../controllers/order.controller';
 import { validate } from '../middlewares/validateMiddleware';
 import { createOrderSchema } from '../schemas/order.schema';
-import { authenticate } from '../middlewares/authMiddleware';
+import { authenticate, requireRole } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // ==========================================
-// RUTA PÚBLICA: Checkout de Invitados
+// RUTA PROTEGIDA: Checkout requiere cuenta
 // ==========================================
-router.post('/checkout', validate(createOrderSchema), orderController.checkout);
+router.post('/checkout', authenticate, validate(createOrderSchema), orderController.checkout);
 
 // ==========================================
 // RUTAS PRIVADAS: El guardia
@@ -18,11 +18,11 @@ router.use(authenticate);
 
 // 👇 RUTA PROTEGIDA: Solo el administrador con token puede entrar
 // ¡ESTA ES LA NUEVA RUTA DEL DASHBOARD!
-router.get('/admin/stats', orderController.getDashboardStats);
-router.get('/admin/analytics', orderController.getAnalytics);
+router.get('/admin/stats', requireRole(['SUPER_ADMIN']), orderController.getDashboardStats);
+router.get('/admin/analytics', requireRole(['SUPER_ADMIN']), orderController.getAnalytics);
 
-router.get('/admin/all', orderController.getAllOrdersForAdmin);
-router.patch('/admin/:id/status', orderController.updateOrderStatus);
+router.get('/admin/all', requireRole(['SUPER_ADMIN', 'VENDEDOR']), orderController.getAllOrdersForAdmin);
+router.patch('/admin/:id/status', requireRole(['SUPER_ADMIN', 'VENDEDOR']), orderController.updateOrderStatus);
 
 // RUTAS DE USUARIO
 router.get('/my-orders', orderController.getMyOrders);

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as bannerController from '../controllers/banner.controller';
-import { authenticate, requireAdmin } from '../middlewares/authMiddleware';
+import { authenticate, requireRole } from '../middlewares/authMiddleware';
 
 const router = Router();
 
@@ -8,7 +8,7 @@ const router = Router();
 router.get('/', bannerController.getActiveBanners);
 
 // ── Admin (requiere JWT de administrador) ──
-router.use(authenticate, requireAdmin);
+router.use(authenticate, requireRole(['SUPER_ADMIN', 'VENDEDOR']));
 router.get('/admin', bannerController.getAllBanners);
 router.post('/admin', bannerController.createBanner);
 router.patch('/admin/:id', bannerController.updateBanner);

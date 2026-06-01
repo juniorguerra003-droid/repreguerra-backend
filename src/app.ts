@@ -12,13 +12,18 @@ import paymentRoutes from './routes/payment.routes';
 import bannerRoutes from './routes/banner.routes';
 import wishlistRoutes from './routes/wishlist.routes';
 import complaintRoutes from './routes/complaint.routes';
+import uploadRoutes from './routes/upload.routes';
+import path from 'path';
 
 const app: Application = express();
 
 // Middlewares
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // Permite cargar imágenes desde otro origen
 app.use(cors());
 app.use(express.json());
+
+// Archivos Estáticos
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Basic health check route
 app.get('/', (req: Request, res: Response) => {
@@ -35,6 +40,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
