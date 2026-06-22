@@ -7,5 +7,6 @@ const router = Router();
 
 // Endpoint público simulado para recibir el webhook (ej. de Yape o Niubiz)
 router.post('/webhook', validate(webhookSchema), paymentController.handleWebhook);
+router.post('/openpay', paymentController.processOpenpayCharge);
 
 export default router;

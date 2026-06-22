@@ -19,7 +19,10 @@ const app: Application = express();
 
 // Middlewares
 app.use(helmet({ crossOriginResourcePolicy: false })); // Permite cargar imágenes desde otro origen
-app.use(cors());
+app.use(cors({
+  origin: [process.env.FRONTEND_URL || 'http://localhost:3001', 'http://localhost:3000'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Archivos Estáticos
